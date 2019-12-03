@@ -9,19 +9,46 @@ namespace Day2
 	{
 		static void Main(string[] args)
 		{
+			//verify
+
 			VerifyIntCode("1,0,0,0,99", "2,0,0,0,99");
 			VerifyIntCode("2,3,0,3,99", "2,3,0,6,99");
 			VerifyIntCode("2,4,4,5,99,0", "2,4,4,5,99,9801");
 			VerifyIntCode("1,1,1,4,99,5,6,0,99", "30,1,1,4,2,5,6,0,99");
 
-			var result = IntCode(Mangle(Parse(Input),(1, 12), (2, 2)));
-			Print(result);
+			// part 1
+			{
+				var result = IntCode(Mangle(Parse(Input), (1, 12), (2, 2)));
+				Print(result);
+			}
 
+			// part 2
+
+			List<int> input = Parse(Input);
+			for (int noun = 0; noun < 99; noun++)
+			{
+				for (int verb = 0; verb < 99; verb++)
+				{
+					List<int> copy = new List<int>(input);
+
+					try
+					{
+						var result = IntCode(Mangle(copy, (1, noun), (2, verb)));
+
+						if (result[0] == 19690720)
+						{
+							Console.WriteLine($"Noun: {noun}, Verb: {verb}, 100 * noun + verb: {100 * noun + verb}");
+							break;
+						}
+					}
+					catch { }
+				}
+			}
 		}
 
 		private static List<int> Mangle(List<int> list, params (int, int)[] patches)
 		{
-			foreach(var patch in patches)
+			foreach (var patch in patches)
 			{
 				list[patch.Item1] = patch.Item2;
 			}
