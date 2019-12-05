@@ -9,9 +9,13 @@ namespace Day4
     {
         static void Main(string[] args)
         {
-            Verify(111111, true);
-            Verify(223450, false);
-            Verify(123789, false);
+            //sVerify(111111, true);
+            //sVerify(223450, false);
+            //sVerify(123789, false);
+
+            Verify(112233, true);
+            Verify(123444, false);
+            Verify(111122, true);
 
             Console.WriteLine(ScanRange(Range.low, Range.high).Count);
         }
@@ -31,9 +35,9 @@ namespace Day4
             }
 
             bool found = false;
-            for (int i = 1; i < digits.Count; i++)
+            for (int i = 0; i <= 9; i++)
             {
-                if (digits[i - 1] == digits[i])
+                if (CheckSequence(digits, i))
                 {
                     found = true;
                     break;
@@ -52,6 +56,36 @@ namespace Day4
             }
 
             return true;
+        }
+
+        private static bool CheckSequence(List<int> digits, int digit)
+        {
+            int count = 1;
+            for (int i = 1; i < digits.Count; i++)
+            {
+                if (digits[i - 1] != digit)
+                {
+                    if (count == 2)
+                    {
+                        return true;
+                    }
+
+                    count = 1;
+                    continue;
+                }
+
+                if (digits[i - 1] == digits[i])
+                {
+                    count++;
+                }
+            }
+
+            if (count == 2)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private static List<int> ScanRange(int low, int high)
