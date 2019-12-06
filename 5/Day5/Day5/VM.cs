@@ -9,12 +9,14 @@ namespace Day5
         private readonly Memory _memory;
         private readonly Func<int> _input;
         private readonly Action<int> _output;
+        private readonly bool _debug;
 
-        public VM(Memory memory, Func<int> input, Action<int> output)
+        public VM(Memory memory, Func<int> input, Action<int> output, bool debug = false)
         {
             _memory = memory;
             _input = input;
             _output = output;
+            _debug = debug;
         }
 
         public void Run()
@@ -60,10 +62,52 @@ namespace Day5
 
                             var value = mode1 ? location : _memory[location];
 
-                            Console.WriteLine($"{index:D4} - Opcode: {opcode:D5}: {location}, {value}");
+                            WriteLine($"{index:D4} - Opcode: {opcode:D5}: {location}, {value}");
 
                             _output(value);
                             opcodeLength = 2;
+                            break;
+                        }
+                    case 5:
+                        //jump if true
+                        {
+                            int result = EvaluateIf(index, out int address);
+                            if (result != 0)
+                            {
+                                index = address;
+                                opcodeLength = 0;
+                                break;
+                            }
+
+                            opcodeLength = 3;
+                            break;
+                        }
+                    case 6:
+                        //jump if false
+                        {
+                            int result = EvaluateIf(index, out int address);
+                            if (result == 0)
+                            {
+                                index = address;
+                                opcodeLength = 0;
+                                break;
+                            }
+
+                            opcodeLength = 3;
+                            break;
+                        }
+                    case 7:
+                        //less than
+                        {
+                            Evaluate(index, (x, y) => x < y);
+                            opcodeLength = 4;
+                            break;
+                        }
+                    case 8:
+                        //equals
+                        {
+                            Evaluate(index, (x, y) => x == y);
+                            opcodeLength = 4;
                             break;
                         }
                     case 99:
@@ -76,6 +120,41 @@ namespace Day5
 
                 index += opcodeLength;
             }
+        }
+
+        private void Evaluate(int index, Func<int, int, bool> condition)
+        {
+            GetModes(_memory[index], out bool mode1, out bool mode2, out _);
+
+            int index1 = _memory[index + 1];
+            int index2 = _memory[index + 2];
+            int index3 = _memory[index + 3];
+
+            int val1 = mode1 ? index1 : _memory[index1];
+            int val2 = mode2 ? index2 : _memory[index2];
+
+            if (condition(val1, val2))
+            {
+                _memory[index3] = 1;
+            }
+            else
+            {
+                _memory[index3] = 0;
+            }
+        }
+
+        private int EvaluateIf(int index, out int address)
+        {
+            GetModes(_memory[index], out bool mode1, out bool mode2, out _);
+
+            int index1 = _memory[index + 1];
+            int index2 = _memory[index + 2];
+
+            int val = mode1 ? index1 : _memory[index1];
+
+            address = mode2 ? index2 : _memory[index2];
+
+            return val;
         }
 
         private int GetOpcode(int opcode)
@@ -98,9 +177,17 @@ namespace Day5
 
             var result = func(v1, v2);
 
-            Console.WriteLine($"{address:D4} - Opcode: {opcode:D5}: {index1} ({v1}), {index2} ({v2}), {destIndex} (result: {result})");
+            WriteLine($"{address:D4} - Opcode: {opcode:D5}: {index1} ({v1}), {index2} ({v2}), {destIndex} (result: {result})");
 
             _memory[destIndex] = result;
+        }
+
+        private void WriteLine(FormattableString str)
+        {
+            if (_debug)
+            {
+                Console.WriteLine(str);
+            }
         }
 
         private void GetModes(int opcode, out bool mode1, out bool mode2, out bool mode3)

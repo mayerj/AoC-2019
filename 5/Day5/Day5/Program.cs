@@ -10,21 +10,24 @@ namespace Day5
     {
         static void Main(string[] args)
         {
-           //VerifyIntCode("3,0,4,0,99", new[] { 5 }, new[] { 5 });
-           //VerifyIntCode("1101,100,-1,4,0", Array.Empty<int>(), Array.Empty<int>(), new[] { (4, 99) });
-           //VerifyIntCode("1002,4,3,4,33", Array.Empty<int>(), Array.Empty<int>(), new[] { (4, 99) });
+           VerifyIntCode("3,0,4,0,99", new[] { 5 }, new[] { 5 });
+           VerifyIntCode("1101,100,-1,4,0", Array.Empty<int>(), Array.Empty<int>(), new[] { (4, 99) });
+           VerifyIntCode("1002,4,3,4,33", Array.Empty<int>(), Array.Empty<int>(), new[] { (4, 99) });
 
-            IntCode(Input, new[] { 1 });
+            IntCode(Input, new[] { 1 }, false);
+
+
+            IntCode(Input, new[] { 5 }, false);
         }
 
-        private static void IntCode(string inputCode, int[] input)
+        private static void IntCode(string inputCode, int[] input, bool debug)
         {
             IEnumerator inputStream = input.GetEnumerator();
 
             List<int> output = new List<int>();
             Memory memory = new Memory(Parse(inputCode));
 
-            VM vm = new VM(memory, () => { inputStream.MoveNext(); return (int)inputStream.Current; }, x => { Console.WriteLine($"Output: {x}"); output.Add(x); });
+            VM vm = new VM(memory, () => { inputStream.MoveNext(); return (int)inputStream.Current; }, x => { Console.WriteLine($"Output: {x}"); output.Add(x); }, debug);
 
             vm.Run();
 
@@ -38,7 +41,7 @@ namespace Day5
             List<int> output = new List<int>();
             Memory memory = new Memory(Parse(inputCode));
 
-            VM vm = new VM(memory, () => { inputStream.MoveNext(); return (int)inputStream.Current; }, x => output.Add(x));
+            VM vm = new VM(memory, () => { inputStream.MoveNext(); return (int)inputStream.Current; }, x => output.Add(x), debug: false);
 
             vm.Run();
 
