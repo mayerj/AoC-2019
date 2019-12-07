@@ -36,6 +36,76 @@ K)L", "COM", 42);
             Node<string> root = Parse(Input);
 
             Console.WriteLine(ComputeOrbits(root));
+
+            VerifyTransit(@"COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN", 4);
+
+            Console.WriteLine(Transit(root, "YOU", "SAN"));
+        }
+
+        private static void VerifyTransit(string input, int expectedTransits)
+        {
+            Node<string> root = Parse(input);
+
+            Debug.Assert(Transit(root, "YOU", "SAN") == expectedTransits);
+        }
+
+        private static int Transit<T>(Node<T> root, T start, T dest)
+        {
+            Node<T> startNode = FindNode(root, start);
+            Node<T> destNode = FindNode(root, dest).Parent;
+
+            List<Node<T>> startParents = GetParents(startNode);
+            List<Node<T>> destParents = GetParents(destNode);
+
+            Node<T> common = startParents.First(x => destParents.Contains(x));
+
+            int count = startParents.IndexOf(common) + destParents.IndexOf(common) + 1;
+
+            return count;
+        }
+
+        private static List<Node<T>> GetParents<T>(Node<T> node)
+        {
+            node = node.Parent;
+
+            List<Node<T>> parents = new List<Node<T>>();
+
+            while(node != null)
+            {
+                parents.Add(node);
+                node = node.Parent;
+            }
+
+            return parents;
+        }
+
+        private static Node<T> FindNode<T>(Node<T> root, T lookingFor)
+        {
+            Stack<Node<T>> nodes = new Stack<Node<T>>(new[] { root });
+            while(nodes.Count > 0)
+            {
+                Node<T> current = nodes.Pop();
+                current.Nodes.ForEach(x => nodes.Push(x));
+
+                if (current.Object.Equals(lookingFor))
+                {
+                    return current;
+                }
+            }
+
+            throw new InvalidOperationException();
         }
 
         private static void VerifyRoot(string input, string expectedRoot, int expectedOrbits)
