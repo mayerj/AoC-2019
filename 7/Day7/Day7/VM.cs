@@ -7,9 +7,12 @@ namespace Day7
     public class VM
     {
         private readonly Memory _memory;
+        private int _index = 0;
         private readonly Func<int> _input;
         private readonly Action<int> _output;
         private readonly bool _debug;
+
+        public bool IsHalted { get; private set; }
 
         public VM(Memory memory, Func<int> input, Action<int> output, bool debug = false)
         {
@@ -21,13 +24,11 @@ namespace Day7
 
         public void Run()
         {
-            int index = 0;
-
             bool run = true;
             while (run)
             {
-                _memory.Set(index, AddressType.OpCode);
-                int opcode = _memory[index];
+                _memory.Set(_index, AddressType.OpCode);
+                int opcode = _memory[_index];
 
                 int parsedOpcode = GetOpcode(opcode);
 
@@ -37,20 +38,20 @@ namespace Day7
                     case 1:
                         {
                             //add
-                            Math(index, (x, y) => x + y);
+                            Math(_index, (x, y) => x + y);
                             opcodeLength = 4;
                             break;
                         }
                     case 2:
                         {
                             //mult
-                            Math(index, (x, y) => x * y);
+                            Math(_index, (x, y) => x * y);
                             opcodeLength = 4;
                             break;
                         }
                     case 3:
                         {
-                            int location = _memory[index + 1];
+                            int location = _memory[_index + 1];
                             _memory[location] = _input();
                             opcodeLength = 2;
                             break;
@@ -58,23 +59,24 @@ namespace Day7
                     case 4:
                         {
                             GetModes(opcode, out var mode1, out _, out _);
-                            int location = _memory[index + 1];
+                            int location = _memory[_index + 1];
 
                             var value = mode1 ? location : _memory[location];
 
-                            WriteLine($"{index:D4} - Opcode: {opcode:D5}: {location}, {value}");
+                            WriteLine($"{_index:D4} - Opcode: {opcode:D5}: {location}, {value}");
 
                             _output(value);
                             opcodeLength = 2;
+                            run = false;
                             break;
                         }
                     case 5:
                         //jump if true
                         {
-                            int result = EvaluateIf(index, out int address);
+                            int result = EvaluateIf(_index, out int address);
                             if (result != 0)
                             {
-                                index = address;
+                                _index = address;
                                 opcodeLength = 0;
                                 break;
                             }
@@ -85,10 +87,10 @@ namespace Day7
                     case 6:
                         //jump if false
                         {
-                            int result = EvaluateIf(index, out int address);
+                            int result = EvaluateIf(_index, out int address);
                             if (result == 0)
                             {
-                                index = address;
+                                _index = address;
                                 opcodeLength = 0;
                                 break;
                             }
@@ -99,18 +101,19 @@ namespace Day7
                     case 7:
                         //less than
                         {
-                            Evaluate(index, (x, y) => x < y);
+                            Evaluate(_index, (x, y) => x < y);
                             opcodeLength = 4;
                             break;
                         }
                     case 8:
                         //equals
                         {
-                            Evaluate(index, (x, y) => x == y);
+                            Evaluate(_index, (x, y) => x == y);
                             opcodeLength = 4;
                             break;
                         }
                     case 99:
+                        IsHalted = true;
                         run = false;
                         opcodeLength = 1;
                         break;
@@ -118,7 +121,7 @@ namespace Day7
                         throw new InvalidOperationException();
                 }
 
-                index += opcodeLength;
+                _index += opcodeLength;
             }
         }
 

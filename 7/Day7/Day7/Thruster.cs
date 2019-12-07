@@ -6,26 +6,45 @@ namespace Day7
 {
     public class Thruster
     {
-        private readonly string _input;
+        private readonly string _program;
         private readonly int _phaseSetting;
+        private readonly VM _vm;
+        private int _input;
+        private int _output;
 
-        public Thruster(string input, int phaseSetting)
+        public Thruster(string program, int phaseSetting)
         {
-            _input = input;
+            _program = program;
             _phaseSetting = phaseSetting;
+
+            bool hasConfigured = false;
+            int GetNext()
+            {
+                if (hasConfigured)
+                {
+                    return _input;
+                }
+                else
+                {
+                    hasConfigured = true;
+                    return _phaseSetting;
+                }
+            }
+
+            Memory memory = new Memory(program.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList());
+
+            _vm = new VM(memory, GetNext, x => _output = x);
         }
+
+        public bool IsHalted => _vm.IsHalted;
 
         public int Run(int input)
         {
-            IEnumerator enumerator = new[] { _phaseSetting, input }.GetEnumerator();
+            _input = input;
 
-            Memory memory = new Memory(_input.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList());
+            _vm.Run();
 
-            int result = 0;
-            VM vm = new VM(memory, () => { enumerator.MoveNext(); return (int)enumerator.Current; }, x => result = x);
-            vm.Run();
-
-            return result;
+            return _output;
         }
     }
 }
