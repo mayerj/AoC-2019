@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Day8
 {
@@ -13,6 +14,68 @@ namespace Day8
             VerifyImage(@"123456789012", 3, 2, new[] { "123", "456" }, new[] { "789", "012" });
 
             Console.WriteLine(Find(Input, 25, 6));
+
+            //foreach (var layer in Parse(Input, 25, 6).Layers)
+            //{
+            //    Output(layer);
+            //}
+
+            Console.WriteLine(Decode("0222112222120000", 2, 2));
+            Console.WriteLine(Decode(Input, 25, 6));
+        }
+
+        private static void Output(Layer layer)
+        {
+            for (int h = 0; h < layer.Data.Count; h++)
+            {
+                for (int w = 0; w < layer.Data[h].Length; w++)
+                {
+                    Console.Write($"{(layer.Data[h][w] == 0 ? ' ' : '1')}");
+                }
+
+                Console.WriteLine();
+            }
+        }
+
+        private static string Decode(string input, int width, int height)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            Image image = Parse(input, width, height);
+
+            int[,] data = new int[height, width];
+
+            for (int h = 0; h < height; h++)
+            {
+                for (int w = 0; w < width; w++)
+                {
+                    data[h, w] = DecodePixel(image, h, w);
+                    //Console.Write($"{data[h, w]}");
+
+                    Console.Write($"{(data[h, w] == 0 ? ' ' : '1')}");
+                }
+
+                Console.WriteLine();
+            }
+
+            return sb.ToString();
+        }
+
+        private static int DecodePixel(Image image, int h, int w)
+        {
+            int value = 2;
+            foreach (var layer in ((IEnumerable<Layer>)image.Layers).Reverse())
+            {
+                int pixel = layer.Data[h][w];
+
+                if (pixel == 2)
+                {
+                    continue;
+                }
+
+                value = pixel;
+            }
+            return value;
         }
 
         private static int Find(string input, int width, int height)
