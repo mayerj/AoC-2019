@@ -25,6 +25,7 @@ namespace Day9
             VerifyOutput("109,2000,109,19,204,-34,99", x => x.Count == 1 && x[0] == 0);
 
             Console.WriteLine(GetKeycode(Input, 1));
+            Console.WriteLine(GetKeycode(Input, 2));
         }
 
         private static void VerifyIntCode(string inputCode, long[] input, long[] expectedOutput, params (long addr, long value)[] expectedMemory)
@@ -75,7 +76,7 @@ namespace Day9
 
             List<long> output = new List<long>();
 
-            VM vm = new VM(new Memory(data), () => inputValue, x => output.Add(x), true);
+            VM vm = new VM(new Memory(data), () => inputValue, x => output.Add(x));
 
             vm.Decompile();
 
