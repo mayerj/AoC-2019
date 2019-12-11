@@ -12,11 +12,19 @@ namespace Day10
             Check(@"
 ##
 ##", (0, 0));
-            
+
             Check(@"
 ###
 ###
 ###", (1, 1));
+
+
+            Check(@"
+.#..#
+.....
+#####
+....#
+...##", (3, 4));
 
             Check(@"
 .#..#
@@ -29,13 +37,92 @@ namespace Day10
 67775
 ....7
 ...87");
+
+            Check(@"
+......#.#.
+#..#.#....
+..#######.
+.#.#.###..
+.#..#.....
+..#....#.#
+#..#....#.
+.##.#..###
+##...#..#.
+.#....####", (5, 8));
+
+            Check(@"#.#...#.#.
+.###....#.
+.#....#...
+##.#.#.#.#
+....#.#.#.
+.##..###.#
+..#...##..
+..##....##
+......#...
+.####.###.", (1, 2));
+
+            Check(@".#..#..###
+####.###.#
+....###.#.
+..###.##.#
+##.##.#.#.
+....###..#
+..#.#..#.#
+#..#.#.###
+.##...##.#
+.....#.#..", (6, 3));
+
+            Check(@".#..##.###...#######
+##.############..##.
+.#.######.########.#
+.###.#######.####.#.
+#####.##.#.##.###.##
+..#####..#.#########
+####################
+#.####....###.#.#.##
+##.#################
+#####.##.###..####..
+..######..##.#######
+####.##.####...##..#
+.#####..#.######.###
+##...#.##########...
+#.##########.#######
+.####.#.###.###.#.##
+....##.##.###..#####
+.#.#.###########.###
+#.#.#.#####.####.###
+###.##.####.##.#..##", (11, 13));
+
+            var optimal = FindOptimal(Parse(@"###..#########.#####.
+.####.#####..####.#.#
+.###.#.#.#####.##..##
+##.####.#.###########
+###...#.####.#.#.####
+#.##..###.########...
+#.#######.##.#######.
+.#..#.#..###...####.#
+#######.##.##.###..##
+#.#......#....#.#.#..
+######.###.#.#.##...#
+####.#...#.#######.#.
+.######.#####.#######
+##.##.##.#####.##.#.#
+###.#######..##.#....
+###.##.##..##.#####.#
+##.########.#.#.#####
+.##....##..###.#...#.
+#..#.####.######..###
+..#.####.############
+..##...###..#########"));
+
+            Console.WriteLine(optimal);
         }
 
         private static void Check(string input, (int x, int y) expected)
         {
             Map map = Parse(input);
 
-            var optimal = FindOptimal(map);
+            var optimal = FindAll(map);
 
             Debug.Assert(optimal.OrderByDescending(x => x.Value).First().Key == expected);
         }
@@ -44,17 +131,17 @@ namespace Day10
         {
             Map map = Parse(input);
 
-            var optimal = FindOptimal(map);
+            var optimal = FindAll(map);
 
             var expectedData = ParseExpected(expected);
 
-            foreach(var data in optimal)
+            foreach (var data in optimal)
             {
-                Debug.Assert(data.Value == expectedData[data.Key.x][data.Key.y]);
+                Debug.Assert(data.Value == expectedData[data.Key.y][data.Key.x]);
             }
         }
 
-        private static Dictionary<(int x, int y), int> FindOptimal(Map map)
+        private static Dictionary<(int x, int y), int> FindAll(Map map)
         {
             Dictionary<(int x, int y), int> locations = new Dictionary<(int x, int y), int>();
             foreach (var location in GetAsteroids(map))
@@ -64,45 +151,40 @@ namespace Day10
 
             return locations;
         }
+        private static ((int x, int y), int visibleAsteroids) FindOptimal(Map map)
+        {
+            Dictionary<(int x, int y), int> locations = new Dictionary<(int x, int y), int>();
+            foreach (var location in GetAsteroids(map))
+            {
+                locations[location] = GetVisibleAsteroids(map, location);
+            }
+
+            var optimal = FindAll(map).OrderByDescending(x => x.Value).First();
+
+            return (optimal.Key, optimal.Value);
+        }
 
         private static int GetVisibleAsteroids(Map map, (int x, int y) location)
         {
-            int visibleAsteroids = 0;
+            HashSet<double> angles = new HashSet<double>();
             foreach (var asteroid in GetAsteroids(map))
             {
-                if (IsVisible(asteroid, map, location))
+                if (asteroid == location)
                 {
-                    visibleAsteroids++;
+                    continue;
                 }
+
+                angles.Add(GetAngle(asteroid, location));
             }
 
-            return visibleAsteroids;
+            return angles.Count;
         }
 
-        private static bool IsVisible((int x, int y) asteroid, Map map, (int x, int y) location)
+        private static double GetAngle((int x, int y) asteroid, (int x, int y) location)
         {
-            var directions = new (int x, int y)[] { (0, -1), (0, 1), (1, -1), (1, 0), (1, 1), (-1, 1), (-1, 0), (-1, -1) };
+            var angle = Math.Atan2(location.y - asteroid.y, location.x - asteroid.x);
 
-            foreach (var delta in directions)
-            {
-                var los = location;
-                do
-                {
-                    los = (los.x + delta.x, los.y + delta.y);
-
-                    if (map.IsAsteroid(los))
-                    {
-                        if (los == asteroid)
-                        {
-                            return true;
-                        }
-                        break;
-                    }
-
-                } while (map.IsInBounds(los));
-            }
-
-            return false;
+            return angle;
         }
 
         private static IEnumerable<(int x, int y)> GetAsteroids(Map map)
@@ -147,7 +229,7 @@ namespace Day10
 
         public (int height, int width) GetBounds() => (_map[0].Length, _map.Length);
 
-        public bool IsAsteroid((int x, int y) location) => IsInBounds(location) && _map[location.x][location.y];
+        public bool IsAsteroid((int x, int y) location) => IsInBounds(location) && _map[location.y][location.x];
 
         internal bool IsInBounds((int x, int y) location)
         {
