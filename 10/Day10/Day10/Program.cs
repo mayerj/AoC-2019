@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Day10
 {
-    class Program
+    static class Program
     {
         static void Main(string[] args)
         {
@@ -72,7 +72,7 @@ namespace Day10
 .##...##.#
 .....#.#..", (6, 3));
 
-            Check(@".#..##.###...#######
+            string bigInput = @".#..##.###...#######
 ##.############..##.
 .#.######.########.#
 .###.#######.####.#.
@@ -91,9 +91,11 @@ namespace Day10
 ....##.##.###..#####
 .#.#.###########.###
 #.#.#.#####.####.###
-###.##.####.##.#..##", (11, 13));
+###.##.####.##.#..##";
 
-            var optimal = FindOptimal(Parse(@"###..#########.#####.
+            Check(bigInput, (11, 13));
+
+            string input = @"###..#########.#####.
 .####.#####..####.#.#
 .###.#.#.#####.##..##
 ##.####.#.###########
@@ -113,9 +115,39 @@ namespace Day10
 .##....##..###.#...#.
 #..#.####.######..###
 ..#.####.############
-..##...###..#########"));
+..##...###..#########";
+
+            var optimal = FindOptimal(Parse(input));
 
             Console.WriteLine(optimal);
+
+            Console.WriteLine("Part 2");
+
+            CheckVaporizationIndex(@"
+.#.
+###
+.#.", (1, 1), null, (0, (1, 0)), (1, (2, 1)), (2, (1, 2)), (3, (0, 1)));
+
+            CheckVaporizationIndex(bigInput, (11, 13), null, (0, (11, 12)), (1, (12, 1)), (2, (12, 2)), (9, (12, 8)), (199, (8, 2)));
+
+            CheckVaporizationIndex(input, (11, 11), (199, ((int x, int y) point) => Console.WriteLine((point.x * 100) + point.y)));
+        }
+
+        private static void CheckVaporizationIndex(string input, (int x, int y) startingLocation, (int index, Action<(int x, int y)> action)? callback, params (int index, (int x, int y) location)[] expected)
+        {
+            Map map = Parse(input);
+
+            var given = map.Vaporize(startingLocation).ToArray();
+
+            foreach (var expect in expected)
+            {
+                Debug.Assert(given[expect.index] == expect.location);
+            }
+
+            if (callback.HasValue)
+            {
+                callback.Value.action(given[callback.Value.index]);
+            }
         }
 
         private static void Check(string input, (int x, int y) expected)
@@ -146,7 +178,7 @@ namespace Day10
             Dictionary<(int x, int y), int> locations = new Dictionary<(int x, int y), int>();
             foreach (var location in GetAsteroids(map))
             {
-                locations[location] = GetVisibleAsteroids(map, location);
+                locations[location] = GetVisibleAsteroids(map, location).Count;
             }
 
             return locations;
@@ -156,7 +188,7 @@ namespace Day10
             Dictionary<(int x, int y), int> locations = new Dictionary<(int x, int y), int>();
             foreach (var location in GetAsteroids(map))
             {
-                locations[location] = GetVisibleAsteroids(map, location);
+                locations[location] = GetVisibleAsteroids(map, location).Count;
             }
 
             var optimal = FindAll(map).OrderByDescending(x => x.Value).First();
@@ -164,9 +196,9 @@ namespace Day10
             return (optimal.Key, optimal.Value);
         }
 
-        private static int GetVisibleAsteroids(Map map, (int x, int y) location)
+        private static Dictionary<double, (int x, int y)> GetVisibleAsteroids(Map map, (int x, int y) location)
         {
-            HashSet<double> angles = new HashSet<double>();
+            Dictionary<double, (int x, int y)> visible = new Dictionary<double, (int x, int y)>();
             foreach (var asteroid in GetAsteroids(map))
             {
                 if (asteroid == location)
@@ -174,15 +206,30 @@ namespace Day10
                     continue;
                 }
 
-                angles.Add(GetAngle(asteroid, location));
+                double angle = GetAngle(asteroid, location);
+
+                if (visible.TryGetValue(angle, out var current))
+                {
+                    if (Distance(location, current) < Distance(location, asteroid))
+                    {
+                        continue;
+                    }
+                }
+
+                visible[angle] = asteroid;
             }
 
-            return angles.Count;
+            return visible;
+        }
+
+        private static double Distance((int x, int y) location, (int x, int y) location2)
+        {
+            return Math.Sqrt(Math.Pow((location2.x - location.x), 2) + Math.Pow((location2.y - location.y), 2));
         }
 
         private static double GetAngle((int x, int y) asteroid, (int x, int y) location)
         {
-            var angle = Math.Atan2(location.y - asteroid.y, location.x - asteroid.x);
+            var angle = Math.Atan2(location.x - asteroid.x, location.y - asteroid.y);
 
             return angle;
         }
@@ -216,6 +263,41 @@ namespace Day10
             string[] data = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             return data.Select(x => x.Select(y => y == '.' ? 0 : int.Parse(y.ToString())).ToArray()).ToArray();
         }
+
+        public static IEnumerable<(int x, int y)> Vaporize(this Map map, (int x, int y) startingLocation)
+        {
+            //map.Output(startingLocation);
+
+            while (GetAsteroids(map).Where(x => x != startingLocation).Any())
+            {
+                var visible = GetVisibleAsteroids(map, startingLocation);
+
+                foreach (var asteroid in OrderByAngle(visible))
+                {
+                    yield return asteroid;
+
+                    map.Remove(asteroid);
+
+                    //map.Output(startingLocation, asteroid);
+                }
+            }
+        }
+
+        private static IEnumerable<(int x, int y)> OrderByAngle(Dictionary<double, (int x, int y)> possible)
+        {
+            const double halfPi = Math.PI / 2;
+            const double negHalfPi = -Math.PI / 2;
+
+            var all = possible.OrderBy(x => x.Key).ToArray();
+
+            //ugh.
+            var upperLeft = all.Where(x => x.Key <= halfPi && x.Key > 0).ToArray();
+            var upperRight = all.Where(x => x.Key <= 0 && x.Key > negHalfPi).ToArray();
+            var lowerRight = all.Where(x => x.Key <= negHalfPi && x.Key > -Math.PI).ToArray();
+            var lowerLeft = all.Where(x => x.Key <= Math.PI && x.Key > halfPi).ToArray();
+
+            return upperRight.OrderByDescending(x => x.Key).Concat(lowerRight.OrderByDescending(x => x.Key)).Concat(lowerLeft.OrderByDescending(x => x.Key)).Concat(upperLeft.OrderByDescending(x => x.Key)).Select(x => x.Value);
+        }
     }
 
     public class Map
@@ -231,10 +313,46 @@ namespace Day10
 
         public bool IsAsteroid((int x, int y) location) => IsInBounds(location) && _map[location.y][location.x];
 
-        internal bool IsInBounds((int x, int y) location)
+        public bool IsInBounds((int x, int y) location)
         {
             var bound = GetBounds();
             return location.x >= 0 && location.y >= 0 && location.x < bound.width && location.y < bound.height;
+        }
+
+        public void Remove((int x, int y) asteroid)
+        {
+            _map[asteroid.y][asteroid.x] = false;
+        }
+
+        public void Output((int x, int y) start, (int x, int y)? highlight = null)
+        {
+            Console.WriteLine();
+
+            var bounds = GetBounds();
+            for (int y = 0; y < bounds.height; y++)
+            {
+                for (int x = 0; x < bounds.width; x++)
+
+                {
+                    if ((x, y) == start)
+                    {
+                        Console.Write("@");
+                    }
+                    else
+                    {
+                        if ((x, y) == highlight)
+                        {
+                            Console.BackgroundColor = ConsoleColor.Red;
+                        }
+
+                        Console.Write(IsAsteroid((x, y)) ? "#" : ".");
+
+                        Console.BackgroundColor = ConsoleColor.Black;
+                    }
+                }
+
+                Console.WriteLine();
+            }
         }
     }
 }
