@@ -37,9 +37,30 @@ namespace Day11
             int width = _data.OrderByDescending(x => x.Key.X).First().Key.X;
 
             Console.WriteLine("---");
-            for (int y = minY; y < height; y++)
+
+            if (robot.X < minX)
             {
-                for (int x = minX; x < width; x++)
+                minX = robot.X;
+            }
+
+            if (robot.Y < minY)
+            {
+                minY = robot.Y;
+            }
+
+            if (robot.X > width)
+            {
+                width = robot.X;
+            }
+
+            if (robot.Y > height)
+            {
+                width = robot.Y;
+            }
+
+            for (int y = height; y >=minY; y--)
+            {
+                for (int x = minX; x <= width; x++)
                 {
                     if (robot == new Point(x, y))
                     {

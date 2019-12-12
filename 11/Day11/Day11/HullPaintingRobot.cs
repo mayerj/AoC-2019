@@ -70,15 +70,17 @@ namespace Day11
 
         private bool _isPaint = true;
         private int _iterations = 0;
+        private bool _debug = false;
 
         public Point Position => _currentLocation;
 
         public Direction Direction => _direction;
 
-        public HullPaintingRobot(Canvas canvas, string input)
+        public HullPaintingRobot(Canvas canvas, string input, bool debug = false)
         {
             _canvas = canvas;
             _input = input;
+            _debug = debug;
 
             _memory = new Memory(Parse(input));
             _vm = new VM(_memory, GetColor, ProcessCommand);
@@ -135,9 +137,9 @@ namespace Day11
                 MoveForward();
 
                 _iterations++;
-                if ((_iterations % 50) == 0)
+                if ((_iterations % 5) == 0 && _debug)
                 {
-                    //_canvas.Print(_currentLocation, _direction);
+                    _canvas.Print(_currentLocation, _direction);
                 }
             }
 
