@@ -7,10 +7,19 @@ namespace Day12
     internal class Simulation
     {
         private readonly List<Moon> _moons;
+        private readonly bool _debug;
+        private ulong _runSteps = 0;
 
-        public Simulation(List<Moon> moons)
+        public Simulation(List<Moon> moons, bool debug = false)
         {
             _moons = moons;
+            _debug = debug;
+        }
+
+        public Simulation(Simulation other)
+            : this(new List<Moon>(other._moons.Select(x => new Moon(x))), other._debug)
+        {
+            _runSteps = other._runSteps;
         }
 
         public int Energy { get { return _moons.Sum(x => x.GetEnergy()); } }
@@ -27,11 +36,13 @@ namespace Day12
 
         private void RunStep(int step)
         {
+            _runSteps++;
+
             IEnumerable<(Moon one, Moon two)> pairs = GetPairs();
 
-            foreach (var pair in pairs)
+            foreach (var (one, two) in pairs)
             {
-                Mutate(pair.one, pair.two);
+                Mutate(one, two);
             }
 
             Advance();
@@ -41,17 +52,18 @@ namespace Day12
 
         private void Output(int step)
         {
-            //Console.WriteLine($"--- Step {step} ---");
-            //foreach (var moon in _moons)
-            //{
-            //    Console.WriteLine(moon.ToString());
-            //}
+            if (!_debug) { return; }
+            Console.WriteLine($"--- Step {step} ---");
+            foreach (var moon in _moons)
+            {
+                Console.WriteLine(moon.ToString());
+            }
         }
 
         internal int GetState()
         {
             HashCode hashCode = new HashCode();
-            foreach(var moon in _moons)
+            foreach (var moon in _moons)
             {
                 hashCode.Add(moon.GetState());
             }
@@ -69,38 +81,7 @@ namespace Day12
 
         private void Mutate(Moon one, Moon two)
         {
-            if (one.X > two.X)
-            {
-                one.DX -= 1;
-                two.DX += 1;
-            }
-            else if (one.X < two.X)
-            {
-                one.DX += 1;
-                two.DX -= 1;
-            }
-
-            if (one.Y > two.Y)
-            {
-                one.DY -= 1;
-                two.DY += 1;
-            }
-            else if (one.Y < two.Y)
-            {
-                one.DY += 1;
-                two.DY -= 1;
-            }
-
-            if (one.Z > two.Z)
-            {
-                one.DZ -= 1;
-                two.DZ += 1;
-            }
-            else if (one.Z < two.Z)
-            {
-                one.DZ += 1;
-                two.DZ -= 1;
-            }
+            one.Mutate(two);
         }
 
         private IEnumerable<(Moon one, Moon two)> GetPairs()

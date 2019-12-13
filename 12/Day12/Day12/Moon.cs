@@ -1,65 +1,99 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Day12
 {
+    public class Vector
+    {
+        public Vector(string label, int coordinate, int speed)
+        {
+            Label = label;
+            Coordinate = coordinate;
+            Speed = speed;
+        }
+
+        public string Label { get; }
+        public int Coordinate { get; set; }
+        public int Speed { get; set; }
+    }
+
     [DebuggerDisplay("{Index}")]
     public class Moon
     {
         public int Index { get; }
 
-        private int _x;
-        private int _y;
-        private int _z;
+        private readonly Vector[] _vectors;
 
-        public Moon(int index, int x, int y, int z)
+        public Moon(int index, params Vector[] vectors)
         {
             Index = index;
-            _x = x;
-            _y = y;
-            _z = z;
+            _vectors = vectors;
+        }
+
+        public Moon(Moon other)
+            : this(other.Index, other._vectors.Select(x => new Vector(x.Label, x.Coordinate, x.Speed)).ToArray())
+        {
         }
 
         public override string ToString()
         {
-            return $"pos=<x={_x},   y={_y}, z={_z}>, vel=<x={DX},   y={DY}, z={DZ}>";
+            string position = $"pos=<{_vectors.Select(x => $"{x.Label}={x.Coordinate}")}>";
+
+            string velocity = $"vel=<{_vectors.Select(x => $"{x.Label}={x.Speed}")}>";
+
+            return $"{position} {velocity}";
         }
 
         public int GetEnergy()
         {
-            var potential = Math.Abs(_x) + Math.Abs(_y) + Math.Abs(_z);
-            var kinetic = Math.Abs(DX) + Math.Abs(DY) + Math.Abs(DZ);
+            int potential = 0;
+            int kinetic = 0;
+            foreach (var c in _vectors)
+            {
+                potential += Math.Abs(c.Coordinate);
+                kinetic += Math.Abs(c.Speed);
+            }
 
             return potential * kinetic;
         }
 
         public void Move()
         {
-            _x += DX;
-            _y += DY;
-            _z += DZ;
+            foreach (var c in _vectors)
+            {
+                c.Coordinate += c.Speed;
+            }
         }
-
-        public int X => _x;
-        public int Y => _y;
-        public int Z => _z;
-        public int DX { get; set; }
-        public int DY { get; set; }
-        public int DZ { get; set; }
 
         public int GetState()
         {
             HashCode hashCode = new HashCode();
 
-            hashCode.Add(_x);
-            hashCode.Add(_y);
-            hashCode.Add(_z);
-
-            hashCode.Add(DX);
-            hashCode.Add(DY);
-            hashCode.Add(DZ);
+            foreach (var c in _vectors)
+            {
+                hashCode.Add(c.Coordinate);
+                hashCode.Add(c.Speed);
+            }
 
             return hashCode.ToHashCode();
+        }
+
+        internal void Mutate(Moon other)
+        {
+            for (int i = 0; i < _vectors.Length; i++)
+            {
+                if (_vectors[i].Coordinate > other._vectors[i].Coordinate)
+                {
+                    _vectors[i].Speed -= 1;
+                    other._vectors[i].Speed += 1;
+                }
+                else if (_vectors[i].Coordinate < other._vectors[i].Coordinate)
+                {
+                    _vectors[i].Speed += 1;
+                    other._vectors[i].Speed -= 1;
+                }
+            }
         }
     }
 }
