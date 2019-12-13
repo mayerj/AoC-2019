@@ -23,15 +23,67 @@ namespace Day12
 
             Console.WriteLine("--- Part 2 ---");
 
-            VerifyCycleFloyd(@"<x=-1, y=0, z=2>
+            VerifyCycleLcm(@"<x=-1, y=0, z=2>
 <x=2, y=-10, z=-7>
 <x=4, y=-8, z=8>
 <x=3, y=5, z=-1>", 2772);
 
-            VerifyCycleFloyd(@"<x=-8, y=-10, z=0>
+            VerifyCycleLcm(@"<x=-8, y=-10, z=0>
 <x=5, y=5, z=10>
 <x=2, y=-7, z=3>
 <x=9, y=-8, z=-3>", 4686774924);
+
+            Console.WriteLine(FindCycleLengthLcm(Input));
+        }
+
+        private static void VerifyCycleLcm(string input, ulong cycleSteps)
+        {
+            ulong lcm = FindCycleLengthLcm(input);
+
+            Debug.Assert(lcm == cycleSteps);
+        }
+
+        private static ulong FindCycleLengthLcm(string input)
+        {
+            var moons = Parse(input);
+
+            ulong[] cycles = new ulong[3];
+            for (int i = 0; i < 3; i++)
+            {
+                cycles[i] = FindCycle(moons, i);
+            }
+
+            ulong lcm = cycles[0];
+            for (int i = 1; i < cycles.Length; i++)
+            {
+                lcm = Lcm(lcm, cycles[i]);
+            }
+
+            return lcm;
+        }
+
+        private static ulong Lcm(ulong a, ulong b)
+        {
+            return a * b / Gcd(a, b);
+        }
+
+        private static ulong Gcd(ulong a, ulong b)
+        {
+            while (b != 0)
+            {
+                var temp = b;
+                b = a % b;
+                a = temp;
+            }
+
+            return a;
+        }
+
+        private static ulong FindCycle(List<Moon> moons, int i)
+        {
+            List<Moon> sub = new List<Moon>(moons.Select(x => new Moon(x.Index, x.Vectors[i])));
+
+            return FindCycle(sub);
         }
 
         private static void VerifyCycleFloyd(string input, ulong cycleSteps)
@@ -70,11 +122,18 @@ namespace Day12
         {
             List<Moon> moons = Parse(input);
 
+            ulong steps = FindCycle(moons);
+
+            Debug.Assert(steps == cycleSteps);
+        }
+
+        private static ulong FindCycle(List<Moon> moons)
+        {
             Simulation s = new Simulation(moons);
 
             ulong steps = 0;
             int state = s.GetState();
-            while (steps <= cycleSteps)
+            while (true)
             {
                 steps++;
                 s.Run(1);
@@ -85,7 +144,7 @@ namespace Day12
                 }
             }
 
-            Debug.Assert(steps == cycleSteps);
+            return steps;
         }
 
         private static void Verify(string input, int steps, int expectedEnergy)

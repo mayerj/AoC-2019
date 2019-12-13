@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -35,6 +36,8 @@ namespace Day12
             : this(other.Index, other._vectors.Select(x => new Vector(x.Label, x.Coordinate, x.Speed)).ToArray())
         {
         }
+
+        public IReadOnlyList<Vector> Vectors => _vectors;
 
         public override string ToString()
         {
@@ -79,7 +82,7 @@ namespace Day12
             return hashCode.ToHashCode();
         }
 
-        internal void Mutate(Moon other)
+        public void Mutate(Moon other)
         {
             for (int i = 0; i < _vectors.Length; i++)
             {
