@@ -46,5 +46,20 @@ namespace Day12
         public int DX { get; set; }
         public int DY { get; set; }
         public int DZ { get; set; }
+
+        public int GetState()
+        {
+            HashCode hashCode = new HashCode();
+
+            hashCode.Add(_x);
+            hashCode.Add(_y);
+            hashCode.Add(_z);
+
+            hashCode.Add(DX);
+            hashCode.Add(DY);
+            hashCode.Add(DZ);
+
+            return hashCode.ToHashCode();
+        }
     }
 }

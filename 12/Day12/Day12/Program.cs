@@ -20,6 +20,40 @@ namespace Day12
 <x=9, y=-8, z=-3>", 100, 1940);
 
             Console.WriteLine($"{GetEnergy(Input, 1000)}");
+
+            Console.WriteLine("--- Part 2 ---");
+
+            VerifyCycle(@"<x=-1, y=0, z=2>
+<x=2, y=-10, z=-7>
+<x=4, y=-8, z=8>
+<x=3, y=5, z=-1>", 2772);
+
+            VerifyCycle(@"<x=-8, y=-10, z=0>
+<x=5, y=5, z=10>
+<x=2, y=-7, z=3>
+<x=9, y=-8, z=-3>", 4686774924);
+        }
+
+        private static void VerifyCycle(string input, ulong cycleSteps)
+        {
+            List<Moon> moons = Parse(input);
+
+            Simulation s = new Simulation(moons);
+
+            ulong steps = 0;
+            int state = s.GetState();
+            while (steps <= cycleSteps)
+            {
+                steps++;
+                s.Run(1);
+
+                if (state == s.GetState())
+                {
+                    break;
+                }
+            }
+
+            Debug.Assert(steps == cycleSteps);
         }
 
         private static void Verify(string input, int steps, int expectedEnergy)

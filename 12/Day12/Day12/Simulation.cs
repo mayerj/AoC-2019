@@ -41,11 +41,22 @@ namespace Day12
 
         private void Output(int step)
         {
-            Console.WriteLine($"--- Step {step} ---");
-            foreach (var moon in _moons)
+            //Console.WriteLine($"--- Step {step} ---");
+            //foreach (var moon in _moons)
+            //{
+            //    Console.WriteLine(moon.ToString());
+            //}
+        }
+
+        internal int GetState()
+        {
+            HashCode hashCode = new HashCode();
+            foreach(var moon in _moons)
             {
-                Console.WriteLine(moon.ToString());
+                hashCode.Add(moon.GetState());
             }
+
+            return hashCode.ToHashCode();
         }
 
         private void Advance()
