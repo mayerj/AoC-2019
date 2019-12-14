@@ -14,7 +14,7 @@ namespace Day13
 
     public class VM
     {
-
+        private readonly Queue<string> _lastOutputAddresses = new Queue<string>();
         private readonly Memory _memory;
         private long _index = 0;
         private long _relativeBaseOffset = 0;
@@ -123,9 +123,27 @@ namespace Day13
                         {
                             GetModes(opcode, out var mode1, out _, out _);
 
+                            switch (mode1)
+                            {
+                                case ReadMode.Relative:
+                                    _lastOutputAddresses.Enqueue($"{_memory[_index + 1]} + {_relativeBaseOffset}");
+                                    break;
+                                case ReadMode.Immediate:
+                                    _lastOutputAddresses.Enqueue("-1");
+                                    break;
+                                case ReadMode.Position:
+                                    _lastOutputAddresses.Enqueue($"{_memory[_index + 1]}");
+                                    break;
+                            }
+
+                            while (_lastOutputAddresses.Count > 10)
+                            {
+                                _lastOutputAddresses.Dequeue();
+                            }
+
                             var value = ReadWithMode(_memory[_index + 1], mode1);
 
-                            WriteLine($"{_index:D4} - Opcode: {opcode:D5}: {_index + 1}, {value}");
+                            WriteLine($"{_index:D4} - Opcode: {opcode:D5} ({parsedOpcode}): {_index + 1}, {value}");
 
                             _output(value);
                             opcodeLength = 2;
@@ -200,19 +218,25 @@ namespace Day13
             }
         }
 
+        public string GetState()
+        {
+            return _relativeBaseOffset.ToString();
+        }
+
+        public string Inspect()
+        {
+            return _memory.Inspect();
+        }
+
         private long ReadWithMode(long address, ReadMode mode)
         {
-            switch (mode)
+            return mode switch
             {
-                case ReadMode.Position:
-                    return _memory[address];
-                case ReadMode.Immediate:
-                    return address;
-                case ReadMode.Relative:
-                    return _memory[address + _relativeBaseOffset];
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode));
-            }
+                ReadMode.Position => _memory[address],
+                ReadMode.Immediate => address,
+                ReadMode.Relative => _memory[address + _relativeBaseOffset],
+                _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+            };
         }
 
         private void Evaluate(long index, Func<long, long, bool> condition)
@@ -304,19 +328,15 @@ namespace Day13
         {
             string code = opcode.ToString("D5");
 
-            ReadMode MapMode(char mode)
+            static ReadMode MapMode(char mode)
             {
-                switch (mode)
+                return mode switch
                 {
-                    case '0':
-                        return ReadMode.Position;
-                    case '1':
-                        return ReadMode.Immediate;
-                    case '2':
-                        return ReadMode.Relative;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(mode));
-                }
+                    '0' => ReadMode.Position,
+                    '1' => ReadMode.Immediate,
+                    '2' => ReadMode.Relative,
+                    _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+                };
             }
 
             mode1 = MapMode(code[2]);
@@ -405,6 +425,10 @@ namespace Day13
             }
             set
             {
+                if (address == 2982)
+                {
+
+                }
                 _memory[address] = value;
             }
         }
@@ -412,6 +436,30 @@ namespace Day13
         public bool HasValue(int index)
         {
             return _memory.ContainsKey(index);
+        }
+
+        internal string Inspect()
+        {
+            var data = Enumerable.Range(0, (int)_memory.Keys.Max()).Select(x => this[x]);
+
+            StringBuilder sb = new StringBuilder();
+            int i = 0;
+            int addr = 639;
+            foreach (var l in data.Skip(addr))
+            {
+                addr++;
+
+                sb.AppendFormat("{0},", l);
+                i++;
+
+                if (i % 45 == 0)
+                {
+                    sb.AppendLine();
+                    sb.Append($"{addr:D5}:\t");
+                }
+            }
+
+            return sb.ToString();
         }
 
         internal List<long> ReadAll()
