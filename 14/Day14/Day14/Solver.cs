@@ -6,70 +6,79 @@ namespace Day14
 {
     public class RecursiveSolverProcessor
     {
-        private readonly Dictionary<string, Recipe> _recipes;
+        public int OreType { get; }
+        public int FuelType { get; }
 
-        private Dictionary<string, int> _excess = new Dictionary<string, int>();
-        private int _producedOre;
+        private readonly Recipe[] _recipes;
 
-        public RecursiveSolverProcessor(List<Recipe> list)
+        private long[] _excess;
+        private long _producedOre = 0;
+        private long _maxOre = -1;
+
+        public RecursiveSolverProcessor(List<Recipe> list, Func<string, int> map)
         {
-            _recipes = list.ToDictionary(x => x.Output.Key);
+            OreType = map("ORE");
+            FuelType = map("FUEL");
+
+            _recipes = new Recipe[list.Max(x => x.Output.Key) + 1];
+            _excess = new long[_recipes.Length];
+            foreach (Recipe r in list)
+            {
+                _recipes[r.Output.Key] = r;
+            }
         }
 
-        public int GetRequiredOre(string desiredType, int desiredAmount)
+        public long GetRequiredOre(int desiredType, long desiredAmount)
         {
             GetRequiredInput(desiredType, desiredAmount);
 
             return _producedOre;
         }
 
-        private void GetRequiredInput(string desiredType, int desiredAmount)
+        private void GetRequiredInput(int desiredType, long desiredAmount)
         {
-            if (desiredType == "ORE")
+            if (desiredType == OreType)
             {
                 _producedOre += desiredAmount;
                 return;
             }
 
-            if (_excess.TryGetValue(desiredType, out int excess))
+            if (desiredAmount - _excess[desiredType] >= 0)
             {
-                if (desiredAmount - excess > 0)
-                {
-                    _excess.Remove(desiredType);
-                    desiredAmount -= excess;
-                }
-                else
-                {
-                    _excess[desiredType] -= desiredAmount;
-                    return;
-                }
+                desiredAmount -= _excess[desiredType];
+                _excess[desiredType] = 0;
             }
             else
             {
-                _excess[desiredType] = 0;
+                _excess[desiredType] -= desiredAmount;
+                return;
             }
 
             Recipe r = _recipes[desiredType];
 
-            while (desiredAmount > 0)
+            long multiplier = (long)Math.Ceiling(desiredAmount / (double)r.Output.Value);
+
+            foreach (var input in r.Inputs)
             {
-                foreach (var input in r.Inputs)
-                {
-                    GetRequiredInput(input.Key, input.Value);
-                }
-
-                if (!_excess.TryGetValue(r.Output.Key, out int current))
-                {
-                    _excess[r.Output.Key] = 0;
-                }
-
-                desiredAmount -= r.Output.Value;
-
-                if (desiredAmount < 0)
-                {
-                    _excess[r.Output.Key] += Math.Abs(desiredAmount);
-                }
+                GetRequiredInput(input.Key, input.Value * multiplier);
             }
+
+            desiredAmount -= (r.Output.Value * multiplier);
+
+            if (desiredAmount < 0)
+            {
+                _excess[r.Output.Key] += Math.Abs(desiredAmount);
+            }else if(desiredAmount!=0)
+            {
+
+            }
+        }
+
+        internal static long GetOreForFuel(List<Recipe> recipes, Func<string, int> map, long count = 1)
+        {
+            RecursiveSolverProcessor processor = new RecursiveSolverProcessor(recipes, map);
+
+            return processor.GetRequiredOre(processor.FuelType, count);
         }
     }
 }
