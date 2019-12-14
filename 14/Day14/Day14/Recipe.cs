@@ -5,9 +5,9 @@ namespace Day14
     public class Recipe
     {
         private readonly Dictionary<string, int> _inputs = new Dictionary<string, int>();
-        private readonly (string result, int amount) _result;
+        private readonly KeyValuePair<string, int> _output;
 
-        public Recipe(string[] ingredients, string v2)
+        public Recipe(string[] ingredients, string result)
         {
             foreach (string ingredient in ingredients)
             {
@@ -16,8 +16,8 @@ namespace Day14
                 _inputs[parts[1]] = int.Parse(parts[0]);
             }
 
-            string[] resultParts = v2.Split(new char[0], System.StringSplitOptions.RemoveEmptyEntries);
-            _result = (resultParts[1].Trim(), int.Parse(resultParts[0]));
+            string[] resultParts = result.Split(new char[0], System.StringSplitOptions.RemoveEmptyEntries);
+            _output = new KeyValuePair<string, int>(resultParts[1].Trim(), int.Parse(resultParts[0]));
 
             if (_inputs.Count == 1 && _inputs.ContainsKey("ORE"))
             {
@@ -25,8 +25,14 @@ namespace Day14
             }
         }
 
+        public Recipe(Dictionary<string, int> inputs, KeyValuePair<string, int> output)
+        {
+            _inputs = inputs;
+            _output = output;
+        }
+
         public Dictionary<string, int> Inputs => _inputs;
-        public KeyValuePair<string, int> Outputs => new KeyValuePair<string, int>(_result.result, _result.amount);
+        public KeyValuePair<string, int> Output => _output;
 
         public bool IsOreOnly { get; }
     }
