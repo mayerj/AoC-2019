@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Day13
 {
@@ -89,7 +90,46 @@ namespace Day13
         }
     }
 
-    public class Input
+    public interface IInput
+    {
+        long Next();
+    }
+
+    public class JoystickInput : IInput
+    {
+        public long Next()
+        {
+
+            var r = Console.ReadKey();
+
+            switch (r.Key)
+            {
+                case ConsoleKey.LeftArrow:
+                    return -1;
+                case ConsoleKey.RightArrow:
+                    return 1;
+
+               // case ConsoleKey.Q:
+               //     var loc = _memory[2982];
+               //     _memory[392] = loc;
+               //     return 0;
+               // case ConsoleKey.W:
+               //     var loc2 = _memory[2982];
+               //     _memory[388] = loc2;
+               //     return 0;
+               // case ConsoleKey.DownArrow:
+               //     for (int i = 0; i < 45; i++)
+               //     {
+               //         _memory[1719 + i] = 0;
+               //     }
+               //     return 0;
+                default:
+                    return 0;
+            }
+        }
+    }
+
+    public class Input : IInput
     {
         private int _index = 0;
         private bool _overran = false;
@@ -118,6 +158,33 @@ namespace Day13
             }
 
             _overran = true;
+            return 0;
+        }
+    }
+
+    public class FollowerInput : IInput
+    {
+        private readonly Arcade _arcade;
+
+        public FollowerInput(Arcade arcade)
+        {
+            _arcade = arcade;
+        }
+
+        public long Next()
+        {
+            var paddle = _arcade.ReadLocation(Arcade.TileId.Paddle);
+            var ball = _arcade.ReadLocation(Arcade.TileId.Ball);
+
+            if(paddle > ball)
+            {
+                return -1;
+            }
+            else if(paddle< ball)
+            {
+                return 1;
+            }
+
             return 0;
         }
     }

@@ -196,10 +196,10 @@ namespace Day13
                         throw new InvalidOperationException();
                 }
 
-                if (_debug)
-                {
-                    WriteLine($"{opcode:D5} {opcodeLength}");
-                }
+                //if (_debug)
+                //{
+                //    WriteLine($"{opcode:D5} {opcodeLength}");
+                //}
 
                 _index += opcodeLength;
             }

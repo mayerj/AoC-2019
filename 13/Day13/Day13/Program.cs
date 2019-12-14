@@ -9,69 +9,12 @@ namespace Day13
     {
         private static void Main()
         {
-            object _lock = new object();
-            long maxScore = 0;
-            InputGenerator generator = new InputGenerator();
+            Arcade arcade = new Arcade(input, output: false, debug: false);
 
-            List<Thread> threads = new List<Thread>();
+            IInput inputs = new FollowerInput(arcade);
+            (var score, var count) = arcade.Run(inputs);
 
-            void Report(long localMax, int blocks)
-            {
-                lock (_lock)
-                {
-                    if(localMax > maxScore)
-                    {
-                        maxScore = localMax;
-                        Console.WriteLine($"{localMax}, {blocks} blocks remaining");
-                    }
-                }
-            }
-
-            for (int i = 0; i < 8; i++)
-            {
-                Thread thread = new Thread(Work);
-                threads.Add(thread);
-                thread.Start(Tuple.Create(generator, (Action<long, int>)Report));
-            }
-
-            threads.ForEach(x => x.Join());
-        }
-
-        public static void Work(object obj)
-        {
-            (InputGenerator generator, Action<long, int> Report) = (Tuple<InputGenerator, Action<long, int>>)obj;
-
-            long maxScore = 0;
-            while (true)
-            {
-                var inputs = generator.GetInputs();
-
-                if (inputs == null)
-                {
-                    break;
-                }
-
-                //Console.WriteLine(inputs);
-
-                Arcade arcade = new Arcade(input, output: false);
-
-                (var score, var count) = arcade.Run(inputs);
-
-                generator.Report(inputs, score);
-
-                if (score > maxScore)
-                {
-                    int blocks = arcade.Blocks();
-
-                    maxScore = score;
-                    Report(maxScore, blocks);
-
-                    if (blocks == 0)
-                    {
-                        break;
-                    }
-                }
-            }
+            Console.WriteLine(score);
         }
 
         private static List<long> Parse(string input, params (long addr, long value)[] overrides)

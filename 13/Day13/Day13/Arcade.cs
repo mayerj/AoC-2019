@@ -5,54 +5,14 @@ using System.Text;
 
 namespace Day13
 {
-    class Arcade
+    public class Arcade
     {
-        private long ReadJoystick(Input inputs)
+        private long ReadJoystick(IInput inputs)
         {
-            if (inputs != null)
-            {
-                return inputs.Next();
-            }
-            var r = Console.ReadKey();
-
-            switch (r.Key)
-            {
-                case ConsoleKey.LeftArrow:
-                    return -1;
-                case ConsoleKey.RightArrow:
-                    return 1;
-                case ConsoleKey.Q:
-                    var loc = _memory[2982];
-                    _memory[392] = loc;
-                    return 0;
-                case ConsoleKey.W:
-                    var loc2 = _memory[2982];
-                    _memory[388] = loc2;
-                    return 0;
-                case ConsoleKey.DownArrow:
-                    for (int i = 0; i < 45; i++)
-                    {
-                        _memory[1719 + i] = 0;
-                    }
-                    return 0;
-                default:
-                    return 0;
-            }
+            return inputs.Next();
         }
 
-        internal int Blocks()
-        {
-            //return _data.Values.Count(x => x == TileId.Block);
-            return _data2.Count(x => x == TileId.Block);
-        }
-
-        public bool Won()
-        {
-            //return !_data.Values.Any(x => x == TileId.Block);
-            return !_data2.Any(x => x == TileId.Block);
-        }
-
-        enum TileId
+        public enum TileId
         {
             Empty = 0,
             Wall = 1,
@@ -62,8 +22,7 @@ namespace Day13
         }
 
         private long _score = 0;
-        //private Dictionary<(long x, long y), TileId> _data = new Dictionary<(long x, long y), TileId>();
-        private TileId[] _data2 = new TileId[ushort.MaxValue];
+        private Dictionary<(long x, long y), TileId> _data = new Dictionary<(long x, long y), TileId>();
 
         private void ProcessDraw(long x, long y, long tileId)
         {
@@ -74,8 +33,7 @@ namespace Day13
             }
 
             var tile = (TileId)tileId;
-            //_data[(x, y)] = tile;
-            _data2[((ushort)x) + (((ushort)y) << 8)] = tile;
+            _data[(x, y)] = tile;
         }
 
         private void Print()
@@ -85,58 +43,60 @@ namespace Day13
                 return;
             }
 
-            //long maxX = _data.Keys.Max(x => x.x);
-            //long maxY = _data.Keys.Max(x => x.y);
-            //
-            //Console.Clear();
-            //Console.WriteLine($"Score: {_score} ({_memory?[392]}) ({_vm?.GetState()})");
-            //for (int y = 0; y <= maxY; y++)
-            //{
-            //    for (int x = 0; x <= maxX; x++)
-            //    {
-            //        if (_data.TryGetValue((x, y), out var value))
-            //        {
-            //            switch (value)
-            //            {
-            //                case TileId.Empty:
-            //                    Console.Write(' ');
-            //                    break;
-            //                case TileId.Wall:
-            //                    Console.Write('W');
-            //                    break;
-            //                case TileId.Paddle:
-            //                    Console.Write('_');
-            //                    break;
-            //                case TileId.Block:
-            //                    Console.Write('#');
-            //                    break;
-            //                case TileId.Ball:
-            //                    Console.Write('O');
-            //                    break;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            Console.WriteLine(' ');
-            //        }
-            //    }
-            //
-            //    Console.WriteLine();
-            //}
+            long maxX = _data.Keys.Max(x => x.x);
+            long maxY = _data.Keys.Max(x => x.y);
+
+            Console.Clear();
+            Console.WriteLine($"Score: {_score} ({_memory[442]}:{_memory[_memory[442]]}) ({_vm?.GetState()})");
+            for (int y = 0; y <= maxY; y++)
+            {
+                for (int x = 0; x <= maxX; x++)
+                {
+                    if (_data.TryGetValue((x, y), out var value))
+                    {
+                        switch (value)
+                        {
+                            case TileId.Empty:
+                                Console.Write(' ');
+                                break;
+                            case TileId.Wall:
+                                Console.Write('W');
+                                break;
+                            case TileId.Paddle:
+                                Console.Write('_');
+                                break;
+                            case TileId.Block:
+                                Console.Write('#');
+                                break;
+                            case TileId.Ball:
+                                Console.Write('O');
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine(' ');
+                    }
+                }
+
+                Console.WriteLine();
+            }
         }
 
         private Memory _memory;
         private VM _vm;
         private readonly List<long> _initial;
+        private readonly bool _debug;
         private readonly bool _output;
 
-        public Arcade(List<long> program, bool output = true)
+        public Arcade(List<long> program, bool debug = false, bool output = true)
         {
             _initial = program;
+            _debug = debug;
             _output = output;
         }
 
-        public (long score, int count) Run(Input inputs)
+        public (long score, int count) Run(IInput inputs)
         {
             Queue<long> instructions = new Queue<long>();
 
@@ -155,7 +115,7 @@ namespace Day13
             _vm = new VM(_memory, () => { Print(); count++; return ReadJoystick(inputs); }, x =>
             {
                 instructions.Enqueue(x); Draw();
-            });
+            }, _debug);
 
             long maxScore = 0;
             while (!_vm.IsHalted)
@@ -165,6 +125,11 @@ namespace Day13
             }
 
             return (Math.Max(maxScore, _score), count);
+        }
+
+        public long ReadLocation(TileId tileId)
+        {
+            return _data.Where(x => x.Value == tileId).Select(x => x.Key.x).First();
         }
     }
 }
