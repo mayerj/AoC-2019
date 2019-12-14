@@ -14,7 +14,6 @@ namespace Day13
 
     public class VM
     {
-        private readonly Queue<string> _lastOutputAddresses = new Queue<string>();
         private readonly Memory _memory;
         private long _index = 0;
         private long _relativeBaseOffset = 0;
@@ -123,27 +122,12 @@ namespace Day13
                         {
                             GetModes(opcode, out var mode1, out _, out _);
 
-                            switch (mode1)
-                            {
-                                case ReadMode.Relative:
-                                    _lastOutputAddresses.Enqueue($"{_memory[_index + 1]} + {_relativeBaseOffset}");
-                                    break;
-                                case ReadMode.Immediate:
-                                    _lastOutputAddresses.Enqueue("-1");
-                                    break;
-                                case ReadMode.Position:
-                                    _lastOutputAddresses.Enqueue($"{_memory[_index + 1]}");
-                                    break;
-                            }
-
-                            while (_lastOutputAddresses.Count > 10)
-                            {
-                                _lastOutputAddresses.Dequeue();
-                            }
-
                             var value = ReadWithMode(_memory[_index + 1], mode1);
 
-                            WriteLine($"{_index:D4} - Opcode: {opcode:D5} ({parsedOpcode}): {_index + 1}, {value}");
+                            if (_debug)
+                            {
+                                WriteLine($"{_index:D4} - Opcode: {opcode:D5} ({parsedOpcode}): {_index + 1}, {value}");
+                            }
 
                             _output(value);
                             opcodeLength = 2;
@@ -212,7 +196,10 @@ namespace Day13
                         throw new InvalidOperationException();
                 }
 
-                WriteLine($"{opcode:D5} {opcodeLength}");
+                if (_debug)
+                {
+                    WriteLine($"{opcode:D5} {opcodeLength}");
+                }
 
                 _index += opcodeLength;
             }
@@ -221,11 +208,6 @@ namespace Day13
         public string GetState()
         {
             return _relativeBaseOffset.ToString();
-        }
-
-        public string Inspect()
-        {
-            return _memory.Inspect();
         }
 
         private long ReadWithMode(long address, ReadMode mode)
@@ -278,7 +260,18 @@ namespace Day13
             return val;
         }
 
+        static Instructions?[] _fastOpcodeCache = new Instructions?[100000];
+
         private Instructions GetOpcode(int opcode)
+        {
+            if(_fastOpcodeCache[opcode] != null)
+            {
+                return _fastOpcodeCache[opcode].Value;
+            }
+
+            return (_fastOpcodeCache[opcode] = GetOpcodeSlow(opcode)).Value;
+        }
+        private Instructions GetOpcodeSlow(int opcode)
         {
             return (Instructions)(opcode % 100);
         }
@@ -301,7 +294,10 @@ namespace Day13
 
             var result = func(v1, v2);
 
-            WriteLine($"{address:D4} - Opcode: {opcode:D5}: {index1} ({v1}), {index2} ({v2}), {destIndex} (result: {result})");
+            if (_debug)
+            {
+                WriteLine($"{address:D4} - Opcode: {opcode:D5}: {index1} ({v1}), {index2} ({v2}), {destIndex} (result: {result})");
+            }
 
             switch (mode3)
             {
@@ -324,8 +320,25 @@ namespace Day13
             }
         }
 
+        static Dictionary<long, (ReadMode mode1, ReadMode mode2, ReadMode mode3)> _cache = new Dictionary<long, (ReadMode mode1, ReadMode mode2, ReadMode mode3)>();
+
+        static (ReadMode mode1, ReadMode mode2, ReadMode mode3)?[] _fastCache = new (ReadMode mode1, ReadMode mode2, ReadMode mode3)?[100000];
         private void GetModes(long opcode, out ReadMode mode1, out ReadMode mode2, out ReadMode mode3)
         {
+            //if (_cache.TryGetValue(opcode, out var result))
+            //{
+            //    mode1 = result.mode1;
+            //    mode2 = result.mode2;
+            //    mode3 = result.mode3;
+            //    return;
+            //}
+
+            if (_fastCache[opcode] != null)
+            {
+                (mode1, mode2, mode3) = _fastCache[opcode].Value;
+                return;
+            }
+
             string code = opcode.ToString("D5");
 
             static ReadMode MapMode(char mode)
@@ -343,10 +356,8 @@ namespace Day13
             mode2 = MapMode(code[1]);
             mode3 = MapMode(code[0]);
 
-            if (mode3 != ReadMode.Position)
-            {
-
-            }
+            _cache[opcode] = (mode1, mode2, mode3);
+            _fastCache[opcode] = (mode1, mode2, mode3);
         }
     }
 
@@ -400,71 +411,43 @@ namespace Day13
 
     public class Memory
     {
-        private readonly Dictionary<long, long> _memory;
+        private long[] _flat;
 
         public Memory(List<long> data)
         {
-            _memory = new Dictionary<long, long>();
-
-            for (int i = 0; i < data.Count; i++)
-            {
-                _memory[i] = data[i];
-            }
+            _flat = data.ToArray();
         }
 
         public long this[long address]
         {
             get
             {
-                if (_memory.TryGetValue(address, out long val))
+                if (_flat.Length > (int)address)
                 {
-                    return val;
+                    return _flat[(int)address];
                 }
 
-                return 0;
+                Array.Resize(ref _flat, ((int)address) + 1);
+
+                return this[address];
             }
             set
             {
-                if (address == 2982)
+                if (_flat.Length > (int)address)
                 {
-
+                    _flat[(int)address] = value;
+                    return;
                 }
-                _memory[address] = value;
+
+                Array.Resize(ref _flat, ((int)address) + 1);
+
+                this[address] = value;
             }
         }
 
         public bool HasValue(int index)
         {
-            return _memory.ContainsKey(index);
-        }
-
-        internal string Inspect()
-        {
-            var data = Enumerable.Range(0, (int)_memory.Keys.Max()).Select(x => this[x]);
-
-            StringBuilder sb = new StringBuilder();
-            int i = 0;
-            int addr = 639;
-            foreach (var l in data.Skip(addr))
-            {
-                addr++;
-
-                sb.AppendFormat("{0},", l);
-                i++;
-
-                if (i % 45 == 0)
-                {
-                    sb.AppendLine();
-                    sb.Append($"{addr:D5}:\t");
-                }
-            }
-
-            return sb.ToString();
-        }
-
-        internal List<long> ReadAll()
-        {
-            return new List<long>(_memory.OrderBy(x => x.Key).Select(x => x.Value));
+            return _flat.Length > (int)index;
         }
     }
 }
