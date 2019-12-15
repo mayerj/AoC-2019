@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Day15
 {
@@ -9,11 +10,38 @@ namespace Day15
         {
             RepairBot bot = new RepairBot(new AutonomousBrain());
 
-            while (!bot.FindOxygen())
-            {
-            }
+            var oxy = bot.FindOxygen();
 
             Console.WriteLine(bot.ComputeOptimalPath(new Point(0, 0)).Length);
+
+            Map map = bot.GetMap();
+            var nodes = map.GetNodes();
+
+            var floodableNodes = new HashSet<Node>(nodes.Values.Where(x => x.Type == TileTypes.Droid || x.Type == TileTypes.Oxygen || x.Type == TileTypes.Free));
+
+            HashSet<Node> floodedNodes = new HashSet<Node>() { nodes[oxy] };
+            int minutes = 0;
+            while (!floodedNodes.SetEquals(floodableNodes))
+            {
+                foreach (var flooded in new HashSet<Node>(floodedNodes))
+                {
+                    FloodNeighbors(floodedNodes, floodableNodes, flooded);
+                }
+
+                //Console.Clear();
+                //Console.WriteLine(map.ToString(null, null, new HashSet<Point>(floodedNodes.Select(x=>x.Position))));
+                //Console.ReadLine();
+                minutes++;
+            }
+
+            Console.WriteLine($"Flooded in {minutes} minutes");
+        }
+
+        private static void FloodNeighbors(HashSet<Node> floodedNodes, HashSet<Node> floodable, Node flooded)
+        {
+            var neighbors = flooded.Connections.Values.Intersect(floodable).ToArray();
+
+            floodedNodes.UnionWith(neighbors);
         }
     }
 
@@ -42,6 +70,11 @@ namespace Day15
             Console.Clear();
             Console.WriteLine($"Destination {_currentDestination?.ToString()}");
             Console.WriteLine(_map.ToString(_currentDestination, _directions));
+        }
+
+        public Map GetMap()
+        {
+            return _map;
         }
 
         public RequestedDirections? GetDirection(Point location, Dictionary<Point, TileTypes> tiles)
@@ -147,7 +180,7 @@ namespace Day15
         {
         }
 
-        
+
 
         public void Map() { }
         public RequestedDirections? GetDirection(Point location, Dictionary<Point, TileTypes> tiles)
@@ -171,6 +204,11 @@ namespace Day15
         public RequestedDirections[] GetPath(Point startingLocation, Point endingLocation)
         {
             throw new NotImplementedException();
+        }
+
+        public Map GetMap()
+        {
+            return null;
         }
     }
 }

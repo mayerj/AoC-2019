@@ -49,6 +49,11 @@ namespace Day15
             _nodes = nodes;
         }
 
+        public Dictionary<Point, Node> GetNodes()
+        {
+            return new Dictionary<Point, Node>(_nodes);
+        }
+
         public Node Location { get; set; }
 
         internal Point? FindUnexploredTile(out Queue<Point> directions)
@@ -182,7 +187,7 @@ namespace Day15
             return result.ToArray();
         }
 
-        internal string ToString(Point? currentDestination, Queue<Point> directions)
+        internal string ToString(Point? currentDestination, Queue<Point> directions, HashSet<Point> flooded = null)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -203,7 +208,11 @@ namespace Day15
                 {
                     char symbol;
 
-                    if (currentDestination.HasValue && currentDestination.Value == new Point(x, y))
+                    if (flooded != null && flooded.Contains(new Point(x, y)))
+                    {
+                        symbol = 'F';
+                    }
+                    else if (currentDestination.HasValue && currentDestination.Value == new Point(x, y))
                     {
                         symbol = '%';
                     }

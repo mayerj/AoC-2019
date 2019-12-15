@@ -129,12 +129,12 @@ namespace Day15
         }
 
 
-        public bool FindOxygen()
+        public Point FindOxygen()
         {
             int tick = 0;
             while (!_mappingComplete)
             {
-                if (tick++ % 100 == 0)
+                if (tick++ % 200 == 0)
                 {
                     _brain.Map();
                     Thread.Sleep(100);
@@ -180,7 +180,7 @@ namespace Day15
                 }
             }
 
-            return _mappingComplete;
+            return _oxygenTank;
         }
 
         private Vector ToVector(RequestedDirections requested)
@@ -243,6 +243,11 @@ namespace Day15
 
             return _brain.GetPath(point, _oxygenTank);
         }
+
+        internal Map GetMap()
+        {
+            return _brain.GetMap();
+        }
     }
 
     internal interface IBrain
@@ -252,5 +257,6 @@ namespace Day15
         void Report(Point point, TileTypes wall);
 
         RequestedDirections[] GetPath(Point startingLocation, Point endingLocation);
+        Map GetMap();
     }
 }
