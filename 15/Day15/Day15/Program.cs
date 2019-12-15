@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Day15
 {
@@ -6,12 +7,170 @@ namespace Day15
     {
         static void Main(string[] args)
         {
-            RepairBot bot = new RepairBot();
+            RepairBot bot = new RepairBot(new AutonomousBrain());
 
+            while (!bot.FindOxygen())
+            {
+            }
+
+            Console.WriteLine(bot.ComputeOptimalPath(new Point(0, 0)).Length);
+        }
+    }
+
+    class AutonomousBrain : IBrain
+    {
+        private readonly Dictionary<Point, Node> _nodes = new Dictionary<Point, Node>();
+        private readonly Node _start = new Node(TileTypes.Free, new Point(0, 0));
+        private readonly Map _map;
+
+        private readonly RemoteControlledBrain _remote = new RemoteControlledBrain();
+        private Point? _currentDestination = null;
+        private Queue<Point> _directions = null;
+        private Node _oxygen;
+
+        public AutonomousBrain()
+        {
+            _start.UpdateConnection(_start.Position + Vector.North, TileTypes.Unknown, new Node(TileTypes.Unknown, _start.Position + Vector.North));
+            _start.UpdateConnection(_start.Position + Vector.South, TileTypes.Unknown, new Node(TileTypes.Unknown, _start.Position + Vector.South));
+            _start.UpdateConnection(_start.Position + Vector.East, TileTypes.Unknown, new Node(TileTypes.Unknown, _start.Position + Vector.East));
+            _start.UpdateConnection(_start.Position + Vector.West, TileTypes.Unknown, new Node(TileTypes.Unknown, _start.Position + Vector.West));
+            _nodes.Add(new Point(0, 0), _start);
+            _map = new Map(_start, _nodes);
+        }
+        public void Map()
+        {
+            Console.Clear();
+            Console.WriteLine($"Destination {_currentDestination?.ToString()}");
+            Console.WriteLine(_map.ToString(_currentDestination, _directions));
+        }
+
+        public RequestedDirections? GetDirection(Point location, Dictionary<Point, TileTypes> tiles)
+        {
+            _map.Location = _nodes[location];
+
+            if (_currentDestination != null && _currentDestination == location || _directions?.Count == 0)
+            {
+                _currentDestination = null;
+            }
+
+            if (_currentDestination == null)
+            {
+                //Map();
+
+                _currentDestination = _map.FindUnexploredTile(out _directions);
+            }
+
+            if (_directions != null && _directions.Count > 0)
+            {
+                var next = _directions.Dequeue();
+
+                var result = ConvertToMovement(location, next);
+                return result;
+            }
+
+            return null; // _remote.GetDirection(location, tiles);
+        }
+
+        public void Report(Point point, TileTypes type)
+        {
+            if (_nodes.ContainsKey(point))
+            {
+                return;
+            }
+
+            Node node;
+            if (type == TileTypes.Oxygen)
+            {
+                _oxygen = node = new Node(TileTypes.Oxygen, point);
+            }
+            else
+            {
+                node = new Node(type, point);
+            }
+
+            _nodes[point] = node;
+
+            UpdateConnectivity(_nodes[point]);
+        }
+
+        private void UpdateConnectivity(Node node)
+        {
+            foreach (Point point in new[] { node.Position + Vector.North, node.Position + Vector.South, node.Position + Vector.East, node.Position + Vector.West })
+            {
+                if (_nodes.TryGetValue(point, out var otherNode))
+                {
+                    otherNode.UpdateConnection(node);
+                    node.UpdateConnection(otherNode);
+                }
+                else
+                {
+                    node.UpdateConnection(point, TileTypes.Unknown, new Node(TileTypes.Unknown, point));
+                }
+            }
+        }
+
+
+        public RequestedDirections[] GetPath(Point startingLocation, Point endingLocation)
+        {
+            return _map.ComputePath(startingLocation, endingLocation);
+        }
+
+        private RequestedDirections? ConvertToMovement(Point location, Point next)
+        {
+            if ((location + Vector.North) == next)
+            {
+                return RequestedDirections.North;
+            }
+
+            if ((location + Vector.South) == next)
+            {
+                return RequestedDirections.South;
+            }
+
+            if ((location + Vector.East) == next)
+            {
+                return RequestedDirections.East;
+            }
+
+            if ((location + Vector.West) == next)
+            {
+                return RequestedDirections.West;
+            }
+
+            return null;
+        }
+    }
+
+    class RemoteControlledBrain : IBrain
+    {
+        public void Report(Point point, TileTypes type)
+        {
+        }
+
+        
+
+        public void Map() { }
+        public RequestedDirections? GetDirection(Point location, Dictionary<Point, TileTypes> tiles)
+        {
             while (true)
             {
-                bot.Run();
+                switch (Console.ReadKey().Key)
+                {
+                    case ConsoleKey.UpArrow:
+                        return RequestedDirections.North;
+                    case ConsoleKey.DownArrow:
+                        return RequestedDirections.South;
+                    case ConsoleKey.LeftArrow:
+                        return RequestedDirections.East;
+                    case ConsoleKey.RightArrow:
+                        return RequestedDirections.West;
+                }
             }
+        }
+
+        public RequestedDirections[] GetPath(Point startingLocation, Point endingLocation)
+        {
+            throw new NotImplementedException();
         }
     }
 }
