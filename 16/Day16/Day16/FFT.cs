@@ -10,20 +10,22 @@ namespace Day16
         static readonly int[] _basePattern = new[] { 0, 1, 0, -1 };
 
         private readonly int[] _input;
+        private readonly int _patternOffset;
 
         public int[] Input => _input;
 
-        public FFT(int[] input)
+        public FFT(int[] input, int offset, int patternOffset)
         {
-            _input = input;
+            _patternOffset = patternOffset;
+            _input = input.Skip(offset).ToArray();
         }
 
         public int[] RunPhase()
         {
-            return Phase(_input, _basePattern).ToArray();
+            return Phase(_input).ToArray();
         }
 
-        private IEnumerable<int> Phase(int[] input, int[] basePattern)
+        private IEnumerable<int> Phase(int[] input)
         {
             for (int i = 0; i < input.Length; i++)
             {
@@ -39,13 +41,13 @@ namespace Day16
             }
         }
 
-        private static Dictionary<int, int[]> _cache = new Dictionary<int, int[]>();
+        private static readonly Dictionary<int, int[]> _cache = new Dictionary<int, int[]>();
 
         private int GetMultiplierPattern(int repeat, int index)
         {
             if (_cache.TryGetValue(repeat, out var value))
             {
-                return value[index % value.Length];
+                return value[(_patternOffset + index) % value.Length];
             }
 
             _cache[repeat] = GetMultiplierPattern(repeat).ToArray();
