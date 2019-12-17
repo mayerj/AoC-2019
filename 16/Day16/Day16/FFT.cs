@@ -27,12 +27,10 @@ namespace Day16
         {
             for (int i = 0; i < input.Length; i++)
             {
-                int[] multipliedPattern = GetMultiplier(basePattern, i, input.Length).ToArray();
-
                 int sum = 0;
                 for (int k = 0; k < input.Length; k++)
                 {
-                    sum += input[k] * multipliedPattern[k + 1];
+                    sum += input[k] * GetMultiplierPattern(i, k + 1);
                 }
 
                 var result = Math.Abs(sum) % 10;
@@ -41,18 +39,27 @@ namespace Day16
             }
         }
 
-        private IEnumerable<int> GetMultiplier(int[] basePattern, int index, int inputLength)
+        private static Dictionary<int, int[]> _cache = new Dictionary<int, int[]>();
+
+        private int GetMultiplierPattern(int repeat, int index)
         {
-            inputLength++;
-            while(inputLength >= 0)
+            if (_cache.TryGetValue(repeat, out var value))
             {
-                for (int i = 0; i < basePattern.Length; i++)
+                return value[index % value.Length];
+            }
+
+            _cache[repeat] = GetMultiplierPattern(repeat).ToArray();
+
+            return GetMultiplierPattern(repeat, index);
+        }
+
+        private IEnumerable<int> GetMultiplierPattern(int repeat)
+        {
+            for (int i = 0; i < _basePattern.Length; i++)
+            {
+                for (int k = 0; k < repeat + 1; k++)
                 {
-                    for (int k = 0; k < index + 1; k++)
-                    {
-                        inputLength--;
-                        yield return basePattern[i];
-                    }
+                    yield return _basePattern[i];
                 }
             }
         }

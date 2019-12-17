@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace Day16
 {
@@ -16,6 +17,27 @@ namespace Day16
 
             Console.WriteLine(StringRunFFT(Input, 100));
 
+            Debug.Assert(StringRunFFT2("03036732577212944063491565474664", 100) == "84462026");
+            Debug.Assert(StringRunFFT2("02935109699940807407585447034323", 100) == "78725270");
+            Debug.Assert(StringRunFFT2("03081770884921959731165446850517", 100) == "53553731");
+
+        }
+
+        private static string StringRunFFT2(string input, int iterations)
+        {
+            StringBuilder sb = new StringBuilder();
+            for(int i=0; i < 10000; i++)
+            {
+                sb.Append(input);
+            }
+
+            int[] convertedData = sb.ToString().Select(x => int.Parse(x.ToString())).ToArray();
+
+            var value = RunFFT(convertedData, iterations);
+
+            int offset = int.Parse(convertedData.Take(7).Select(x => x.ToString()).Aggregate((x, y) => x + y));
+
+            return string.Join("", value.Skip(offset).Take(8));
         }
 
         private static string StringRunFFT(string input, int iterations)
@@ -36,7 +58,7 @@ namespace Day16
             {
                 var next = fft.RunPhase();
 
-                Console.WriteLine("Phase {0}:\t{1}", i + 1, string.Join(", ", next));
+                //Console.WriteLine("Phase {0}:\t{1}", i + 1, string.Join(", ", next));
 
                 fft = new FFT(next);
             }
